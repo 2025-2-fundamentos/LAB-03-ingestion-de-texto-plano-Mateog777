@@ -1,20 +1,52 @@
-"""
-Escriba el codigo que ejecute la accion solicitada en cada pregunta.
-"""
-
-# pylint: disable=import-outside-toplevel
-
+import pandas as pd
+import re
 
 def pregunta_01():
-    """
-    Construya y retorne un dataframe de Pandas a partir del archivo
-    'files/input/clusters_report.txt'. Los requierimientos son los siguientes:
+    with open("files/input/clusters_report.txt", "r", encoding="utf-8") as f:
+        lines = f.readlines()
 
-    - El dataframe tiene la misma estructura que el archivo original.
-    - Los nombres de las columnas deben ser en minusculas, reemplazando los
-      espacios por guiones bajos.
-    - Las palabras clave deben estar separadas por coma y con un solo
-      espacio entre palabra y palabra.
+    data_lines = lines[4:]
+    registros = []
+    actual = None
 
+    patron = re.compile(
+        r"^\s*(\d+)\s+(\d+)\s+([\d,]+)\s+%?\s+(.*)$"
+    )
 
-    """
+    for line in data_lines:
+        if line.strip() == "":
+            continue
+
+        if line.lstrip()[0].isdigit():
+            if actual is not None:
+                registros.append(actual)
+
+            m = patron.match(line)
+            if not m:
+                continue
+
+            cluster = int(m.group(1))
+            cantidad = int(m.group(2))
+            porcentaje = float(m.group(3).replace(",", "."))
+            palabras = m.group(4).strip()
+
+            actual = {
+                "cluster": cluster,
+                "cantidad_de_palabras_clave": cantidad,
+                "porcentaje_de_palabras_clave": porcentaje,
+                "principales_palabras_clave": palabras,
+            }
+        else:
+            texto = line.strip()
+            actual["principales_palabras_clave"] += " " + texto
+
+    if actual is not None:
+        registros.append(actual)
+
+    for r in registros:
+        texto = " ".join(r["principales_palabras_clave"].split())
+        texto = texto.replace(" ,", ",")
+        texto = texto.rstrip(".")
+        r["principales_palabras_clave"] = texto
+
+    return pd.DataFrame(registros)
